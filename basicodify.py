@@ -2,7 +2,17 @@
 # Note: this does not tokenize the input: It just uses a bunch of regular expressions.
 
 import re
-import sys
+from sys import stdout
+from argparse import ArgumentParser, FileType
+
+parser = ArgumentParser()
+parser.add_argument("files", nargs="+", type=FileType("r"))
+parser.add_argument("-o", "--output", action="store")
+parsedArgs = parser.parse_args()
+
+srcLines = []
+for f in parsedArgs.files:
+    srcLines += f.readlines()
 
 # Labels are GOTO/GOSUB targets or constant definitions.
 labelTable = {}
@@ -14,11 +24,6 @@ lineMatcher = re.compile(r"\s.*")
 commentMatcher = re.compile(r"\s*#.*$")
 assignmentMatcher = re.compile(r"_\w+_\s*=.*$")
 ifThenMatcher = re.compile(r".*IF.*THEN.*$")
-
-srcLines = []
-for a in sys.argv[1:]:
-    f = open(a)
-    srcLines += f.readlines()
 
 # Basicode programs start at 1000
 currentLine = 1000
@@ -123,8 +128,12 @@ for (num,line) in codeLines.items():
     if len(outline) > 4:
         result += [outline]
 
-
 result.sort()
 
+output = stdout
+if parsedArgs.output:
+    output = open(parsedArgs.output, "w")
+
 for l in result:
-    print l
+    output.write(l)
+    output.write("\n")
