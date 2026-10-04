@@ -51,14 +51,34 @@ for l in srcLines:
         equalIndex = l.find("=")
         labelTable[l[:equalIndex].strip()] = l[equalIndex+1:].strip()
     elif lineMatcher.match(l):
-        codeLines[currentLine] = codeLines[currentLine] + [l[:-1].strip()]
+        codeLines[currentLine] = codeLines[currentLine] + [l.rstrip("\r\n").strip()]
+
+def findRemStatement(line):
+    inString = False
+    atStatementStart = True
+    for index, char in enumerate(line):
+        if char == '"':
+            inString = not inString
+            atStatementStart = False
+        elif not inString:
+            if atStatementStart and line[index:index+3].upper() == "REM" and (
+                    index + 3 == len(line) or not (line[index+3].isalnum() or line[index+3] in "_$")):
+                return index
+            if not char.isspace():
+                atStatementStart = char == ":"
+    return -1
 
 def replaceLabels(l):
     r = []
     for i in l:
+        remIndex = findRemStatement(i)
+        remStatement = ""
+        if remIndex >= 0:
+            remStatement = i[remIndex:]
+            i = i[:remIndex]
         for (k,v) in labelTable.items():
             i = i.replace(k, v)
-        r.append(i)
+        r.append(i + remStatement)
     return r
 
 codeLines = { n:replaceLabels(l) for (n, l) in codeLines.items() }    
@@ -74,6 +94,11 @@ def collapse(l):
     for i in l:
         s = ""
         tokens = []
+        remIndex = findRemStatement(i)
+        remStatement = ""
+        if remIndex >= 0:
+            remStatement = i[remIndex:]
+            i = i[:remIndex]
         pretokens = i.split('\"')
         for j in range(0, len(pretokens)):
             if j%2 == 0:
@@ -90,6 +115,7 @@ def collapse(l):
                 s = s + t
             else:
                 s = s + " " + t
+        s = s + remStatement.rstrip()
         if len(s) > 56:
             raise Exception("Line " + str(len(s)-56) + " characters too long: " + s)
         r.append(s)
@@ -99,11 +125,24 @@ codeLines = { n:collapse(l) for (n, l) in codeLines.items() }
 
 # THEN GOTO = THEN
 def removeGotos(l):
-    return [i.replace("THENGOTO", "THEN") for i in l ]
+    r = []
+    for i in l:
+        remIndex = findRemStatement(i)
+        if remIndex >= 0:
+            r.append(i[:remIndex].replace("THENGOTO", "THEN") + i[remIndex:])
+        else:
+            r.append(i.replace("THENGOTO", "THEN"))
+    return r
 
 codeLines = { n:removeGotos(l) for (n, l) in codeLines.items() }    
 
 result = []
+
+def appendLine(l):
+    if l.strip().isdigit():
+        return
+    if l.strip() != "":
+        result.append(l)
 
 # Pack code into lines of at most 60 characters
 for (num,line) in codeLines.items():
@@ -112,23 +151,27 @@ for (num,line) in codeLines.items():
     separator= ""
     for l in line:
         if len(outline) + 1 + len(l) > 60:
-            result += [outline]
+            appendLine(outline)
             currentLine += 10
             outline = str(currentLine)
             separator = ""
-        if ifThenMatcher.match(l):
+        if ifThenMatcher.match(l) and findRemStatement(l) < 0:
             outline += separator + l
-            result += [outline]
+            appendLine(outline)
             currentLine += 10
             outline = str(currentLine)
             separator = ""
         else:
             outline += separator + l
             separator = ":"
-    if len(outline) > 4:
-        result += [outline]
+            if findRemStatement(l) >= 0:
+                appendLine(outline)
+                currentLine += 10
+                outline = str(currentLine)
+                separator = ""
+    appendLine(outline)
 
-result.sort()
+result.sort(key=lambda l: int(re.match(r"\d+", l).group()))
 
 output = stdout
 if parsedArgs.output:

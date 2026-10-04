@@ -6,8 +6,8 @@ all: MazezaM.bas MazezaM.wav README.md
 levels.bas: mzm-tools/mzm-convert.py levels.mzm
 	$(PYTHON) mzm-tools/mzm-convert.py -c -o levels.bas levels.mzm
 
-MazezaM.bas: basicodify.py main.bas levels.bas
-	$(PYTHON) basicodify.py -o MazezaM.bas main.bas levels.bas
+MazezaM.bas: basicodify.py main.bas levels.bas trailer.bas
+	$(PYTHON) basicodify.py -o MazezaM.bas main.bas levels.bas trailer.bas
 
 MazezaM.wav: basicodeToWav.py MazezaM.bas
 	$(PYTHON) basicodeToWav.py -o MazezaM.wav MazezaM.bas
