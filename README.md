@@ -2,8 +2,7 @@
 
 A port of the game [MazezaM](https://sites.google.com/site/malcolmsprojects/mazezam-home-page) to [BASICODE](https://en.wikipedia.org/wiki/BASICODE).
 
-It is not intended to be a particularly playable version and it's certainly not readable.
-Instead, it is optimized for size with the intention of supporting the widest possible set of BASICODE platforms.
+It is optimized for size with the intention of supporting the widest possible set of BASICODE platforms.
 In particular, it loads on the unexpanded [VIC-20](https://en.wikipedia.org/wiki/Commodore_VIC-20), which has less than 2.4K available for code when the BASICODE loader and routines are present.
 
 The makefile creates the program listed below. The easiest way to use it is to paste it into Rob Hagermans' browser-based [basicode-interpreter](https://robhagemans.github.io/basicode/#listing).
